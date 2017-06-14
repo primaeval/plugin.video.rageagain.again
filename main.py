@@ -135,7 +135,7 @@ def index():
 
     html = requests.get('http://rageagain.com').content
 
-    match = re.findall('<a.*?</a>',html,flags=(re.DOTALL | re.MULTILINE))
+    match = re.compile('<a.*?</a>',flags=(re.DOTALL | re.MULTILINE)).findall(html)
     year = ''
     playlists = {}
     dates = True
@@ -154,8 +154,10 @@ def index():
             episode = int(href)
             url = "http://rageagain.com/#/episode/%s/1" % href
             #log(url)
-        text = re.sub('<span class="label.*?</span>','',a,flags=(re.DOTALL | re.MULTILINE))
-        text = re.sub('<.*?>','',text,flags=(re.DOTALL | re.MULTILINE))
+        #log(a)
+        text = re.compile('<span class="label.*?</span>',flags=(re.DOTALL | re.MULTILINE)).sub('',a)
+        #log(text)
+        text = re.compile('<.*?>',flags=(re.DOTALL | re.MULTILINE)).sub('',text)
 
         #log(text)
         text = re.sub('\r\n','',text)
@@ -189,9 +191,12 @@ def index():
         'thumbnail':get_icon_path('tv'),
     })
     for episode in sorted(playlists, reverse=True):
+        label = "%s - %s %s" % (playlists[episode]["year"], playlists[episode]["date"], playlists[episode]["title"])
+        if plugin.get_setting('episode') == "true":
+            label = "[%s] %s" % (episode,label)
         items.append(
         {
-            'label': "[%d] %s - %s %s" % (episode, playlists[episode]["year"], playlists[episode]["date"], playlists[episode]["title"]),
+            'label': label,
             'path': plugin.url_for('playlister',episode=episode),
             'thumbnail':get_icon_path('tv'),
         })

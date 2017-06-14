@@ -1,0 +1,3 @@
+<settings>
+<setting id="episode" type="bool" label="Show episode number" default="false"/>
+</settings>
