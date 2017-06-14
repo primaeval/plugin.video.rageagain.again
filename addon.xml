@@ -14,7 +14,7 @@ provider-name="primaeval">
 </extension>
 <extension point="xbmc.addon.metadata">
   <summary lang="en">Rage Again</summary>
-  <description lang="en"></description>
+  <description lang="en">Front end to rageagain.com. Rage is an Australian music video tv show.</description>
   <disclaimer lang="en"></disclaimer>
 </extension>
 </addon>
