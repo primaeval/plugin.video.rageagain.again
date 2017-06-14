@@ -43,7 +43,7 @@ def unescape( str ):
     return str
 
 
-    
+
 @plugin.route('/play_track/<id>')
 def play_track(id):
     url = "http://rageagain.com/youtube/get_sources.json?track_id=%s" % id
@@ -63,8 +63,29 @@ def play_track(id):
         'path' : "plugin://plugin.video.youtube/play/?video_id=%s" % yt,
         'is_playable' : True
     }
-    return plugin.set_resolved_url(item)    
-    
+    return plugin.set_resolved_url(item)
+
+@plugin.route('/play_top_track/<artist>/<track>/<label>')
+def play_top_track(artist,track,label):
+    url = "http://rageagain.com/youtube/get_sources.json?track_artist={0}&track_name={1}&track_label={2}".format(urllib.quote(artist), urllib.quote(track),urllib.quote(label))
+    r = requests.get(url)
+    try:
+        json = r.json()
+    except:
+        return
+    sources = json["sources"]
+    try:
+        yt = sources[0]["id"]
+    except:
+        return
+    item = {
+        'label' : "%s - %s" % (artist,track),
+        'thumbnail' : "",
+        'path' : "plugin://plugin.video.youtube/play/?video_id=%s" % yt,
+        'is_playable' : True
+    }
+    return plugin.set_resolved_url(item)
+
 @plugin.route('/playlister/<episode>')
 def playlister(episode):
     url = "http://rageagain.com/tracks/getByPlaylistId/%s.json" % episode
@@ -85,7 +106,8 @@ def playlister(episode):
             'is_playable' : True
         })
     return items
-    
+
+
 @plugin.route('/top')
 def top():
     url = "http://rageagain.com/tracks/getTop200.json"
@@ -98,22 +120,21 @@ def top():
     items = []
     tracks = json["tracks"]
     for track in tracks:
-        #track = tracks[id]
         items.append(
         {
             'label': "%s - %s" % (track["artist"], track["track"]),
-            'path': '', # plugin.url_for('play_track',id='none'),
+            'path':  plugin.url_for('play_top_track',artist=track["artist"],track=track["track"], label=(track["label"] or "None")),
             'thumbnail':get_icon_path('tv'),
             'is_playable' : True
         })
-    return items    
+    return items
 
 @plugin.route('/')
 def index():
     items = []
-    
+
     html = requests.get('http://rageagain.com').content
-    
+
     match = re.findall('<a.*?</a>',html,flags=(re.DOTALL | re.MULTILINE))
     year = ''
     playlists = {}
@@ -133,7 +154,7 @@ def index():
             episode = int(href)
             url = "http://rageagain.com/#/episode/%s/1" % href
             #log(url)
-        text = re.sub('<span class="label.*?</span>','',a,flags=(re.DOTALL | re.MULTILINE))            
+        text = re.sub('<span class="label.*?</span>','',a,flags=(re.DOTALL | re.MULTILINE))
         text = re.sub('<.*?>','',text,flags=(re.DOTALL | re.MULTILINE))
 
         #log(text)
@@ -149,9 +170,9 @@ def index():
                 playlists[episode]["date"] = ''
                 playlists[episode]["title"] = ""
                 playlists[episode]["year"] = ""
-                
+
             playlists[episode]["url"] = url
-            
+
             if dates == True:
                 playlists[episode]["date"] = text
                 playlists[episode]["year"] = year
@@ -166,11 +187,11 @@ def index():
         'label': "Top 200" ,
         'path': plugin.url_for('top'),
         'thumbnail':get_icon_path('tv'),
-    })        
+    })
     for episode in sorted(playlists, reverse=True):
         items.append(
         {
-            'label': "[%d] %s %s %s" % (episode, playlists[episode]["year"], playlists[episode]["date"], playlists[episode]["title"]),
+            'label': "[%d] %s - %s %s" % (episode, playlists[episode]["year"], playlists[episode]["date"], playlists[episode]["title"]),
             'path': plugin.url_for('playlister',episode=episode),
             'thumbnail':get_icon_path('tv'),
         })
