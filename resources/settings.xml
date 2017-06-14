@@ -1,3 +1,4 @@
 <settings>
 <setting id="episode" type="bool" label="Show episode number" default="false"/>
+<setting id="scrape" type="bool" label="Show Scrape Whole Site to Library" default="false"/>
 </settings>

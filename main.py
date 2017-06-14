@@ -88,6 +88,8 @@ def play_top_track(artist,track,label):
 
 @plugin.route('/playlister/<episode>')
 def playlister(episode):
+    path = 'special://profile/addon_data/plugin.video.rageagain.again/Music Videos/%s/' % episode
+    xbmcvfs.mkdirs(path)
     url = "http://rageagain.com/tracks/getByPlaylistId/%s.json" % episode
     r = requests.get(url)
     try:
@@ -98,6 +100,13 @@ def playlister(episode):
     tracks = json["tracks"]
     for id in sorted(tracks, reverse=True):
         track = tracks[id]
+        strm = xbmcvfs.File(path+id+'.strm','wb')
+        strm.write(plugin.url_for('play_track',id=id))
+        strm.close()
+        nfo = xbmcvfs.File(path+id+'.nfo','wb')
+        s = '<musicvideo><title>%s</title><artist>%s</artist></musicvideo>' % (track["track"],track["artist"])
+        nfo.write(s.encode("utf8"))
+        nfo.close()
         items.append(
         {
             'label': "%s - %s" % (track["artist"], track["track"]),
@@ -110,6 +119,8 @@ def playlister(episode):
 
 @plugin.route('/top')
 def top():
+    path = 'special://profile/addon_data/plugin.video.rageagain.again/Music Videos/Top 200/'
+    xbmcvfs.mkdirs(path)
     url = "http://rageagain.com/tracks/getTop200.json"
     r = requests.get(url)
     try:
@@ -119,7 +130,16 @@ def top():
         return
     items = []
     tracks = json["tracks"]
+    id = 1
     for track in tracks:
+        strm = xbmcvfs.File(path+str(id)+'.strm','wb')
+        s = plugin.url_for('play_top_track',artist=track["artist"],track=track["track"], label=(track["label"] or "None"))
+        strm.write(s.encode("utf8"))
+        strm.close()
+        nfo = xbmcvfs.File(path+str(id)+'.nfo','wb')
+        s = '<musicvideo><title>%s</title><artist>%s</artist></musicvideo>' % (track["track"],track["artist"])
+        nfo.write(s.encode("utf8"))
+        nfo.close()    
         items.append(
         {
             'label': "%s - %s" % (track["artist"], track["track"]),
@@ -127,10 +147,24 @@ def top():
             'thumbnail':get_icon_path('tv'),
             'is_playable' : True
         })
+        id = id + 1
     return items
 
 @plugin.route('/')
 def index():
+    items = []
+    if plugin.get_setting('scrape') == 'true':
+        items.append(
+        {
+            'label': "Scape Whole Site to Library" ,
+            'path': plugin.url_for('process_index',scrape=True),
+            'thumbnail':get_icon_path('settings'),
+        })    
+    items = items + process_index(False)
+    return items
+
+@plugin.route('/process_index/<scrape>')
+def process_index(scrape):
     items = []
 
     html = requests.get('http://rageagain.com').content
@@ -190,7 +224,11 @@ def index():
         'path': plugin.url_for('top'),
         'thumbnail':get_icon_path('tv'),
     })
+    if scrape:
+        top()
     for episode in sorted(playlists, reverse=True):
+        if scrape:
+            playlister(episode)
         label = "%s - %s %s" % (playlists[episode]["year"], playlists[episode]["date"], playlists[episode]["title"])
         if plugin.get_setting('episode') == "true":
             label = "[%s] %s" % (episode,label)
